@@ -229,7 +229,7 @@ type KV struct {
 }
 
 func New(ctx context.Context, urls string, opts Options) (db *DB, err error) {
- return New2(ctx, urls, opts, "","","","","","","","")
+ return New2(ctx, urls, opts, "","","","","","","")
 }
 
 // New loads the contents of an etcd prefix range and creates a *DB
