@@ -68,8 +68,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
-	"path/filepath"
 	"reflect"
 	"runtime/pprof"
 	"sort"
@@ -81,7 +81,6 @@ import (
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/embed"
 	"go.etcd.io/etcd/mvcc/mvccpb"
-	"go.etcd.io/etcd/pkg/types"
 	"tailscale.com/syncs"
 )
 
@@ -228,6 +227,10 @@ type KV struct {
 	Value    interface{} // nil if the key has been deleted
 }
 
+func New(ctx context.Context, urls string, opts Options) (db *DB, err error) {
+ return New2(ctx, urls, opts, "","","","","","","","")
+}
+
 // New loads the contents of an etcd prefix range and creates a *DB
 // for reading and writing from the prefix range.
 //
@@ -245,7 +248,7 @@ type KV struct {
 // uses an etcd database stored in "/data/tailscale.etcd".
 // If only the prefix is provided, that is urls equals "file://", then
 // an embedded etcd is started in the current working directory.
-func New(ctx context.Context, urls string, opts Options) (db *DB, err error) {
+func New2(ctx context.Context, urls string, opts Options,  nodeName string, dataDir string, initialCluster string, initialClusterToken string, lcurls string, acurls string, lpurls string, apurls string) (db *DB, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("etcd.New: %w", err)
@@ -273,20 +276,67 @@ func New(ctx context.Context, urls string, opts Options) (db *DB, err error) {
 		return db, nil
 	}
 	var eps []string
-	if strings.HasPrefix(urls, "file://") {
-		randURLs, err := types.NewURLs([]string{"http://127.0.0.1:0"})
+
+	// NB! We always create an embedded server in this set up!
+
+	if true { // strings.HasPrefix(urls, "file://") {
+		// randURLs, err := types.NewURLs([]string{"http://127.0.0.1:0"})
 		if err != nil {
 			return nil, err
 		}
 
 		cfg := embed.NewConfig()
-		cfg.LCUrls = randURLs
-		cfg.ACUrls = randURLs
-		cfg.LPUrls = randURLs
-		cfg.APUrls = randURLs
-		cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
-		cfg.Dir = filepath.Join(strings.TrimPrefix(urls, "file://"), "tailscale.etcd")
+		// listen for clients urls - could also be 0.0.0.0:port
+		p,_ := url.Parse(lcurls)
+		cfg.LCUrls = []url.URL{*p}
+		// advertise to clients urls (broadcast) - the advertise addresses must be reachable from the remote machines
+		p,_ = url.Parse(acurls)
+		cfg.ACUrls = []url.URL{*p}
+		// listen for peers urls - could also be 0.0.0.0:port
+		p,_ = url.Parse(lpurls)
+		cfg.LPUrls = []url.URL{*p}
+		// advertise to peers urls (broadcast) - the advertise addresses must be reachable from the remote machines
+		p,_ = url.Parse(apurls)
+		cfg.APUrls = []url.URL{*p}
+
+		// removed
+		//cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
+
+		// Removed
+		//cfg.Dir = filepath.Join(strings.TrimPrefix(urls, "file://"), "tailscale.etcd")
+
 		cfg.Logger = "zap" // set to avoid data race in the default logger
+
+		// Add other config
+
+		// TODO: Specify Name
+		cfg.Name = nodeName
+		// TODO: Specify initialcluster
+		cfg.InitialCluster = initialCluster
+		// TODO: Specify ClusterToken
+		cfg.InitialClusterToken = initialClusterToken
+
+		cfg.EnablePprof = false
+
+		cfg.AutoCompactionMode = "periodic"
+		cfg.AutoCompactionRetention = "1h"
+		cfg.QuotaBackendBytes = 8 * 1024 * 1024 * 1024
+		cfg.LogLevel = "warn"
+
+		// TODO, directory should be configurable
+		//cfg.Dir = os.TempDir() + strconv.Itoa(os.Getpid()) + "_" + urls[0].Port()
+		cfg.Dir = dataDir
+
+		// TODO: See if you can remove - this cannot be best practice
+		cfg.StrictReconfigCheck = false
+
+		// TODO: Investigate further how to join an already formed quorum
+		cfg.ClusterState = "new"
+
+		cfg.Debug = true
+		cfg.LogLevel = "info"
+
+		// Finish add other config
 
 		if strings.HasPrefix(cfg.Dir, os.TempDir()) {
 			// Well this is a pickle.
