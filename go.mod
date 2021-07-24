@@ -1,4 +1,4 @@
-module github.com/tailscale/tailetc
+module github.com/jjoergensen/tailetc
 
 go 1.15
 
