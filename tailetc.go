@@ -70,6 +70,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime/pprof"
 	"sort"
@@ -248,12 +249,14 @@ func New(ctx context.Context, urls string, opts Options) (db *DB, err error) {
 // uses an etcd database stored in "/data/tailscale.etcd".
 // If only the prefix is provided, that is urls equals "file://", then
 // an embedded etcd is started in the current working directory.
-func New2(ctx context.Context, urls string, opts Options,  nodeName string, dataDir string, initialCluster string, initialClusterToken string, lcurls string, acurls string, lpurls string, apurls string) (db *DB, err error) {
+func New2(ctx context.Context, urls string, opts Options,  nodeName string, initialCluster string, initialClusterToken string, lcurls string, acurls string, lpurls string, apurls string) (db *DB, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("etcd.New: %w", err)
 		}
 	}()
+
+	fmt.Println("1")
 
 	opts, err = opts.fillDefaults()
 	if err != nil {
@@ -271,6 +274,8 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, data
 	db.done = watchCtx.Done()
 	db.watchCancel = cancel
 
+	fmt.Println("2")
+
 	if urls == "memory://" {
 		db.inMemory = true
 		return db, nil
@@ -279,11 +284,15 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, data
 
 	// NB! We always create an embedded server in this set up!
 
-	if true { // strings.HasPrefix(urls, "file://") {
+	fmt.Println("3")
+
+	if strings.HasPrefix(urls, "file://") {
 		// randURLs, err := types.NewURLs([]string{"http://127.0.0.1:0"})
 		if err != nil {
 			return nil, err
 		}
+
+		fmt.Println("4")
 
 		cfg := embed.NewConfig()
 		// listen for clients urls - could also be 0.0.0.0:port
@@ -299,6 +308,8 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, data
 		p,_ = url.Parse(apurls)
 		cfg.APUrls = []url.URL{*p}
 
+		fmt.Println("5")
+
 		// removed
 		//cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
 
@@ -308,6 +319,10 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, data
 		cfg.Logger = "zap" // set to avoid data race in the default logger
 
 		// Add other config
+
+		fmt.Println("6")
+
+		cfg.LogOutputs = []string{"C:\\Users\\Jonathan\\Documents\\GitHub\\tailetc\\myproject.log"}
 
 		// TODO: Specify Name
 		cfg.Name = nodeName
@@ -323,9 +338,11 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, data
 		cfg.QuotaBackendBytes = 8 * 1024 * 1024 * 1024
 		cfg.LogLevel = "warn"
 
+		fmt.Println("7")
+
 		// TODO, directory should be configurable
 		//cfg.Dir = os.TempDir() + strconv.Itoa(os.Getpid()) + "_" + urls[0].Port()
-		cfg.Dir = dataDir
+		cfg.Dir = filepath.Join(strings.TrimPrefix(urls, "file://"), "tailscale.etcd")
 
 		// TODO: See if you can remove - this cannot be best practice
 		cfg.StrictReconfigCheck = false
@@ -337,6 +354,8 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, data
 		cfg.LogLevel = "info"
 
 		// Finish add other config
+
+		fmt.Println("8")
 
 		if strings.HasPrefix(cfg.Dir, os.TempDir()) {
 			// Well this is a pickle.
@@ -360,8 +379,12 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, data
 			cfg.ElectionMs = 250
 		}
 
+		fmt.Println("9")
+
 		start := time.Now()
 		e, err := embed.StartEtcd(cfg)
+
+		fmt.Println("10")
 		if err != nil {
 			return nil, fmt.Errorf("embedded server failed to start: %v", err)
 		}
