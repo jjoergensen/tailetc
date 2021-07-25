@@ -1206,12 +1206,20 @@ func (db *DB) UnsafeClient() *clientv3.Client {
 }
 
 func (tx *Tx) get(key string) (bool, valueRev, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+			tx.Err = fmt.Errorf("Recovered")
+		}
+	}()
+	fmt.Println("get1")
 	if !strings.HasPrefix(key, tx.db.opts.KeyPrefix) {
 		return false, valueRev{}, fmt.Errorf("key does not use prefix %s", tx.db.opts.KeyPrefix)
 	}
-
+	fmt.Println("get2")
 	putValue, isPut := tx.puts[key]
 	if isPut {
+		fmt.Println("get3")
 		if putValue == nil {
 			return false, valueRev{}, nil
 		}
@@ -1221,10 +1229,13 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 		}
 		return true, valueRev{value: v, modRev: tx.maxRev}, nil
 	}
+	fmt.Println("get4")
 
 	tx.db.Mu.RLock()
 	kv, ok := tx.db.cache[key]
+	fmt.Println("get5")
 	if ok && tx.maxRev == 0 {
+		fmt.Println("get6")
 		tx.maxRev = tx.db.rev
 		if kv.modRev > tx.maxRev {
 			tx.db.Mu.RUnlock()
@@ -1232,7 +1243,7 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 		}
 	}
 	tx.db.Mu.RUnlock()
-
+	fmt.Println("get7")
 	if tx.maxRev < kv.modRev {
 		return false, valueRev{}, ErrTxStale
 	}
@@ -1240,11 +1251,13 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 		return false, valueRev{}, nil
 	}
 	if !tx.ro {
+		fmt.Println("get8")
 		if tx.cmps == nil {
 			tx.cmps = make(map[string]struct{})
 		}
 		tx.cmps[key] = struct{}{}
 	}
+	fmt.Println("get9")
 	return true, kv, nil
 }
 
