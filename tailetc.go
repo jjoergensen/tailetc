@@ -256,8 +256,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 		}
 	}()
 
-	fmt.Println("1")
-
 	opts, err = opts.fillDefaults()
 	if err != nil {
 		return nil, err
@@ -274,8 +272,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 	db.done = watchCtx.Done()
 	db.watchCancel = cancel
 
-	fmt.Println("2")
-
 	if urls == "memory://" {
 		db.inMemory = true
 		return db, nil
@@ -284,7 +280,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 
 	// NB! We always create an embedded server in this set up!
 
-	fmt.Println("3")
 
 	if strings.HasPrefix(urls, "file://") {
 		// randURLs, err := types.NewURLs([]string{"http://127.0.0.1:0"})
@@ -292,7 +287,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 			return nil, err
 		}
 
-		fmt.Println("4")
 
 		cfg := embed.NewConfig()
 		// listen for clients urls - could also be 0.0.0.0:port
@@ -302,7 +296,7 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 			fmt.Println(err.Error())
 		}
 		cfg.LCUrls = []url.URL{*p}
-		fmt.Println("4-1")
+
 		// advertise to clients urls (broadcast) - the advertise addresses must be reachable from the remote machines
 		p,err = url.Parse(acurls)
 		if err != nil {
@@ -310,7 +304,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 			fmt.Println(err.Error())
 		}
 		cfg.ACUrls = []url.URL{*p}
-		fmt.Println("4-2")
 		// listen for peers urls - could also be 0.0.0.0:port
 		p,err = url.Parse(lpurls)
 		if err != nil {
@@ -327,7 +320,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 		}
 		cfg.APUrls = []url.URL{*p}
 
-		fmt.Println("5")
 
 		// removed
 		//cfg.InitialCluster = cfg.InitialClusterFromName(cfg.Name)
@@ -338,8 +330,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 		cfg.Logger = "zap" // set to avoid data race in the default logger
 
 		// Add other config
-
-		fmt.Println("6")
 
 
 
@@ -357,7 +347,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 		cfg.QuotaBackendBytes = 8 * 1024 * 1024 * 1024
 		cfg.LogLevel = "warn"
 
-		fmt.Println("7")
 
 		// TODO, directory should be configurable
 		//cfg.Dir = os.TempDir() + strconv.Itoa(os.Getpid()) + "_" + urls[0].Port()
@@ -374,7 +363,6 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 
 		// Finish add other config
 
-		fmt.Println("8")
 
 		if strings.HasPrefix(cfg.Dir, os.TempDir()) {
 			// Well this is a pickle.
@@ -398,12 +386,10 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 			cfg.ElectionMs = 250
 		}
 
-		fmt.Println("9")
 
 		start := time.Now()
 		e, err := embed.StartEtcd(cfg)
 
-		fmt.Println("10")
 		if err != nil {
 			return nil, fmt.Errorf("embedded server failed to start: %v", err)
 		}
@@ -718,7 +704,6 @@ func (tx *Tx) Put(key string, value interface{}) error {
 			tx.Err = fmt.Errorf("Recovered")
 		}
 	}()
-	fmt.Println("put1")
 	if tx.ro {
 		err := fmt.Errorf("etcd.Put(%q) called on read-only transaction", key)
 		if tx.Err == nil {
@@ -726,12 +711,10 @@ func (tx *Tx) Put(key string, value interface{}) error {
 		}
 		return err
 	}
-	fmt.Println("put2")
 	if tx.Err != nil {
 		return tx.Err
 	}
 	_, curVal, err := tx.get(key)
-	fmt.Println("put3")
 	if err != nil {
 		tx.Err = fmt.Errorf("etcd.Put(%q): %w", key, err)
 		return tx.Err
@@ -739,23 +722,18 @@ func (tx *Tx) Put(key string, value interface{}) error {
 	if tx.puts == nil {
 		tx.puts = make(map[string]interface{})
 	}
-	fmt.Println("put4")
 	var cloned interface{}
 	if value != nil {
 		cloned, err = tx.db.clone(key, value)
-		fmt.Println("put5")
 		if err != nil {
 			tx.Err = fmt.Errorf("etcd.Put(%q): %w", key, err)
 			return tx.Err
 		}
 	}
-	fmt.Println("put6")
 	if tx.PendingUpdate != nil {
 		tx.PendingUpdate(key, curVal.value, value)
-		fmt.Println("put7")
 	}
 	tx.puts[key] = cloned
-	fmt.Println("put8")
 	return nil
 }
 
@@ -1212,17 +1190,14 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 			tx.Err = fmt.Errorf("Recovered")
 		}
 	}()
-	fmt.Println("get1")
 
-	fmt.Printf("key: %s",key)
-	fmt.Printf("prefix: %s",tx.db.opts.KeyPrefix)
 	if !strings.HasPrefix(key, tx.db.opts.KeyPrefix) {
 		return false, valueRev{}, fmt.Errorf("key does not use prefix %s", tx.db.opts.KeyPrefix)
 	}
-	fmt.Println("get2")
+
 	putValue, isPut := tx.puts[key]
 	if isPut {
-		fmt.Println("get3")
+
 		if putValue == nil {
 			return false, valueRev{}, nil
 		}
@@ -1232,13 +1207,13 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 		}
 		return true, valueRev{value: v, modRev: tx.maxRev}, nil
 	}
-	fmt.Println("get4")
+
 
 	tx.db.Mu.RLock()
 	kv, ok := tx.db.cache[key]
-	fmt.Println("get5")
+
 	if ok && tx.maxRev == 0 {
-		fmt.Println("get6")
+
 		tx.maxRev = tx.db.rev
 		if kv.modRev > tx.maxRev {
 			tx.db.Mu.RUnlock()
@@ -1246,7 +1221,7 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 		}
 	}
 	tx.db.Mu.RUnlock()
-	fmt.Println("get7")
+
 	if tx.maxRev < kv.modRev {
 		return false, valueRev{}, ErrTxStale
 	}
@@ -1254,13 +1229,13 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 		return false, valueRev{}, nil
 	}
 	if !tx.ro {
-		fmt.Println("get8")
+
 		if tx.cmps == nil {
 			tx.cmps = make(map[string]struct{})
 		}
 		tx.cmps[key] = struct{}{}
 	}
-	fmt.Println("get9")
+
 	return true, kv, nil
 }
 
