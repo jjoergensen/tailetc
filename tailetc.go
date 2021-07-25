@@ -1213,6 +1213,9 @@ func (tx *Tx) get(key string) (bool, valueRev, error) {
 		}
 	}()
 	fmt.Println("get1")
+
+	fmt.Printf("key: %s",key)
+	fmt.Printf("prefix: %s",tx.db.opts.KeyPrefix)
 	if !strings.HasPrefix(key, tx.db.opts.KeyPrefix) {
 		return false, valueRev{}, fmt.Errorf("key does not use prefix %s", tx.db.opts.KeyPrefix)
 	}
