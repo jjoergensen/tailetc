@@ -341,7 +341,7 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 
 		fmt.Println("6")
 
-		cfg.LogOutputs = []string{"C:\\Users\\Jonathan\\Documents\\GitHub\\tailetc\\myproject.log"}
+		
 
 		// TODO: Specify Name
 		cfg.Name = nodeName
