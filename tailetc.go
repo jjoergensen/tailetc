@@ -296,16 +296,28 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 
 		cfg := embed.NewConfig()
 		// listen for clients urls - could also be 0.0.0.0:port
-		p,_ := url.Parse(lcurls)
+		p,err := url.Parse(lcurls)
+		if err != nil {
+			err = fmt.Errorf("etcd.New: %w", err)
+		}
 		cfg.LCUrls = []url.URL{*p}
 		// advertise to clients urls (broadcast) - the advertise addresses must be reachable from the remote machines
-		p,_ = url.Parse(acurls)
+		p,err = url.Parse(acurls)
+		if err != nil {
+			err = fmt.Errorf("etcd.New: %w", err)
+		}
 		cfg.ACUrls = []url.URL{*p}
 		// listen for peers urls - could also be 0.0.0.0:port
-		p,_ = url.Parse(lpurls)
+		p,err = url.Parse(lpurls)
+		if err != nil {
+			err = fmt.Errorf("etcd.New: %w", err)
+		}
 		cfg.LPUrls = []url.URL{*p}
 		// advertise to peers urls (broadcast) - the advertise addresses must be reachable from the remote machines
-		p,_ = url.Parse(apurls)
+		p,err = url.Parse(apurls)
+		if err != nil {
+			err = fmt.Errorf("etcd.New: %w", err)
+		}
 		cfg.APUrls = []url.URL{*p}
 
 		fmt.Println("5")
