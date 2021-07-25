@@ -299,24 +299,31 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 		p,err := url.Parse(lcurls)
 		if err != nil {
 			err = fmt.Errorf("etcd.New: %w", err)
+			fmt.Println(err.Error())
 		}
 		cfg.LCUrls = []url.URL{*p}
+		fmt.Println("4-1")
 		// advertise to clients urls (broadcast) - the advertise addresses must be reachable from the remote machines
 		p,err = url.Parse(acurls)
 		if err != nil {
 			err = fmt.Errorf("etcd.New: %w", err)
+			fmt.Println(err.Error())
 		}
 		cfg.ACUrls = []url.URL{*p}
+		fmt.Println("4-2")
 		// listen for peers urls - could also be 0.0.0.0:port
 		p,err = url.Parse(lpurls)
 		if err != nil {
 			err = fmt.Errorf("etcd.New: %w", err)
+			fmt.Println(err.Error())
 		}
 		cfg.LPUrls = []url.URL{*p}
+		fmt.Println("4-3")
 		// advertise to peers urls (broadcast) - the advertise addresses must be reachable from the remote machines
 		p,err = url.Parse(apurls)
 		if err != nil {
 			err = fmt.Errorf("etcd.New: %w", err)
+			fmt.Println(err.Error())
 		}
 		cfg.APUrls = []url.URL{*p}
 
