@@ -341,7 +341,7 @@ func New2(ctx context.Context, urls string, opts Options,  nodeName string, init
 
 		fmt.Println("6")
 
-		
+
 
 		// TODO: Specify Name
 		cfg.Name = nodeName
@@ -712,6 +712,13 @@ func (db *DB) getRange(keyPrefix string, fn func([]KV) error, min rev) error {
 // If a newer value for the key is in the DB this will return ErrTxStale.
 // A nil value deletes the key.
 func (tx *Tx) Put(key string, value interface{}) error {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+			tx.Err = fmt.Errorf("Recovered")
+		}
+	}()
+	fmt.Println("put1")
 	if tx.ro {
 		err := fmt.Errorf("etcd.Put(%q) called on read-only transaction", key)
 		if tx.Err == nil {
@@ -719,10 +726,12 @@ func (tx *Tx) Put(key string, value interface{}) error {
 		}
 		return err
 	}
+	fmt.Println("put2")
 	if tx.Err != nil {
 		return tx.Err
 	}
 	_, curVal, err := tx.get(key)
+	fmt.Println("put3")
 	if err != nil {
 		tx.Err = fmt.Errorf("etcd.Put(%q): %w", key, err)
 		return tx.Err
@@ -730,18 +739,23 @@ func (tx *Tx) Put(key string, value interface{}) error {
 	if tx.puts == nil {
 		tx.puts = make(map[string]interface{})
 	}
+	fmt.Println("put4")
 	var cloned interface{}
 	if value != nil {
 		cloned, err = tx.db.clone(key, value)
+		fmt.Println("put5")
 		if err != nil {
 			tx.Err = fmt.Errorf("etcd.Put(%q): %w", key, err)
 			return tx.Err
 		}
 	}
+	fmt.Println("put6")
 	if tx.PendingUpdate != nil {
 		tx.PendingUpdate(key, curVal.value, value)
+		fmt.Println("put7")
 	}
 	tx.puts[key] = cloned
+	fmt.Println("put8")
 	return nil
 }
 
